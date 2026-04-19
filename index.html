@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>US State Livability Index</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #F7F6F3;
+      --text:      #1C1C1E;
+      --muted:     #6E6E73;
+      --border:    #E0DED9;
+      --accent:    #005F73;
+      --valid:     #2D6A4F;
+      --invalid:   #B5331A;
+      --tier-1:    #005F73;
+      --tier-2:    #4C9EB5;
+      --tier-3:    #A8D1DC;
+      --tier-4:    #E2EEF1;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      font-size: 15px;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 52px 24px 40px;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    header {
+      margin-bottom: 36px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    header h1 {
+      font-size: 26px;
+      font-weight: 600;
+      letter-spacing: -0.4px;
+      margin-bottom: 6px;
+    }
+
+    header p {
+      font-size: 14px;
+      color: var(--muted);
+      max-width: 560px;
+    }
+
+    /* ── Controls ───────────────────────────────────────────────── */
+    .controls-section {
+      margin-bottom: 28px;
+    }
+
+    .section-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .sliders-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 18px 24px;
+      margin-bottom: 12px;
+    }
+
+    .slider-item {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .slider-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    .slider-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 3px;
+      border-radius: 2px;
+      background: var(--border);
+      outline: none;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 3px;
+      border-radius: 2px;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      margin-top: -5.5px;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+      box-shadow: 0 0 0 4px rgba(0, 95, 115, 0.12);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border: none;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+    }
+
+    .weight-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 24px;
+    }
+
+    .weight-total {
+      font-size: 13px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      transition: color 0.2s;
+    }
+
+    .weight-total.valid   { color: var(--valid); }
+    .weight-total.invalid { color: var(--invalid); }
+
+    .weight-hint {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .reset-btn {
+      margin-left: auto;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+      color: var(--accent);
+      background: none;
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      padding: 4px 11px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      letter-spacing: 0.01em;
+    }
+
+    .reset-btn:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* ── Map ────────────────────────────────────────────────────── */
+    .map-section {
+      margin-bottom: 12px;
+    }
+
+    #map svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .state-path {
+      stroke: #fff;
+      stroke-width: 0.6;
+      cursor: default;
+      transition: opacity 0.12s;
+    }
+
+    .state-path:hover {
+      opacity: 0.72;
+      stroke-width: 1.4;
+    }
+
+    /* ── Legend ─────────────────────────────────────────────────── */
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .legend-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-right: 6px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-right: 10px;
+    }
+
+    .legend-swatch {
+      width: 11px;
+      height: 11px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── Divider ────────────────────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 28px 0;
+    }
+
+    /* ── Top 10 ─────────────────────────────────────────────────── */
+    .top-ten-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: 40px;
+    }
+
+    .top-ten-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .top-ten-rank {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      min-width: 22px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .top-ten-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .top-ten-name {
+      font-size: 14px;
+      font-weight: 500;
+      flex: 1;
+    }
+
+    .top-ten-score {
+      font-size: 12px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Tooltip ─────────────────────────────────────────────────── */
+    #tooltip {
+      position: fixed;
+      pointer-events: none;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 13px 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.09);
+      font-size: 13px;
+      width: 230px;
+      z-index: 200;
+      opacity: 0;
+      transition: opacity 0.1s;
+    }
+
+    #tooltip.visible { opacity: 1; }
+
+    .tt-state {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 3px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .tt-tier-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.04em;
+    }
+
+    .tt-rank {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .tt-dims {
+      border-top: 1px solid var(--border);
+      padding-top: 9px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .tt-dim-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+    }
+
+    .tt-dim-name {
+      color: var(--muted);
+      width: 96px;
+      flex-shrink: 0;
+    }
+
+    .tt-bar-bg {
+      flex: 1;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .tt-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    .tt-dim-val {
+      font-weight: 500;
+      color: var(--text);
+      min-width: 28px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Footer ─────────────────────────────────────────────────── */
+    footer {
+      margin-top: 40px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ── Responsive ─────────────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .sliders-grid       { grid-template-columns: 1fr 1fr; }
+      .top-ten-grid       { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 420px) {
+      .sliders-grid       { grid-template-columns: 1fr; }
+    }
+
+    /* ── Info button & popover ──────────────────────────────────── */
+    .slider-item { position: relative; }
+
+    .info-btn {
+      width: 15px; height: 15px;
+      border-radius: 50%;
+      border: 1px solid var(--muted);
+      background: none;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      line-height: 1;
+      padding: 0;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .info-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .info-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,95,115,0.07); }
+
+    .dim-popover {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      z-index: 300;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+      width: 250px;
+      font-size: 12px;
+    }
+    .dim-popover.open { display: block; }
+    .dim-popover-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .dim-popover ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .dim-popover li { color: var(--text); line-height: 1.3; }
+    .dim-popover li a {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 10px;
+      display: block;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+    .dim-popover li a:hover { text-decoration: underline; color: var(--accent); }
+
+    /* ── Methodology section ────────────────────────────────────── */
+    details.methodology { margin-top: 0; }
+
+    details.methodology summary {
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      user-select: none;
+      outline: none;
+    }
+    details.methodology summary::-webkit-details-marker { display: none; }
+    .meth-chevron { display: inline-block; transition: transform 0.2s; font-style: normal; }
+    details[open].methodology .meth-chevron { transform: rotate(90deg); }
+
+    .methodology-grid {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px 40px;
+    }
+    @media (max-width: 600px) { .methodology-grid { grid-template-columns: 1fr; } }
+
+    .meth-dim { padding-top: 2px; }
+    .meth-dim-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+    .meth-metric-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+    .meth-metric-list li {
+      font-size: 12px;
+      color: var(--muted);
+      display: grid;
+      grid-template-columns: 10px 1fr;
+      gap: 0 6px;
+      line-height: 1.35;
+    }
+    .meth-metric-list li::before { content: "—"; color: var(--border); }
+    .meth-metric-list a {
+      color: var(--muted);
+      text-decoration: none;
+      border-bottom: 1px dotted var(--border);
+    }
+    .meth-metric-list a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>US State Livability Index</h1>
+    <p>Adjust the dimension weights below to see how state rankings shift based on what matters most to you. Weights must total 100%.</p>
+  </header>
+
+  <section class="controls-section">
+    <div class="section-eyebrow">Dimension Weights</div>
+    <div class="sliders-grid" id="sliders-grid"></div>
+    <div class="weight-status">
+      <span class="weight-total" id="weight-total">Total: 100%</span>
+      <span class="weight-hint"  id="weight-hint"></span>
+      <button class="reset-btn" id="reset-btn">Reset to defaults</button>
+    </div>
+  </section>
+
+  <section class="map-section">
+    <div id="map"></div>
+    <div class="legend">
+      <span class="legend-label">Tier</span>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:var(--tier-1)"></div>1 — Highest
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:var(--tier-2)"></div>2
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:var(--tier-3)"></div>3
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:var(--tier-4); outline:1px solid #ccc"></div>4 — Lowest
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <div class="section-eyebrow">Top 10 States</div>
+    <div class="top-ten-grid" id="top-ten-grid"></div>
+  </section>
+
+  <div class="divider"></div>
+
+  <details class="methodology">
+    <summary><i class="meth-chevron">&#9658;</i> About this index</summary>
+    <div class="methodology-grid" id="methodology-grid"></div>
+  </details>
+
+  <footer>
+    <span>Built by Ying &middot; 2026</span>
+    <span>Data vintage: 2023&ndash;2025</span>
+  </footer>
+
+</div>
+
+<div id="tooltip"></div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<script>
+// ── Embedded data ──────────────────────────────────────────────────────────────
+const WEB_DATA = {"dimensions":[{"id":"safety","label":"Safety","default_weight":25},{"id":"cost_of_living","label":"Cost of Living","default_weight":22},{"id":"population_diversity","label":"Population Diversity","default_weight":17},{"id":"womens_rights","label":"Women\u2019s Rights","default_weight":21},{"id":"disaster_risk","label":"Disaster Risk","default_weight":15}],"states":[{"state":"Alabama","abbr":"AL","dim":{"safety":0.45,"cost_of_living":0.8,"population_diversity":0.375,"womens_rights":0.375,"disaster_risk":0.55}},{"state":"Alaska","abbr":"AK","dim":{"safety":0.5,"cost_of_living":0.65,"population_diversity":0.75,"womens_rights":0.7,"disaster_risk":0.5}},{"state":"Arizona","abbr":"AZ","dim":{"safety":0.45,"cost_of_living":0.55,"population_diversity":0.9375,"womens_rights":0.5833,"disaster_risk":0.55}},{"state":"Arkansas","abbr":"AR","dim":{"safety":0.45,"cost_of_living":0.75,"population_diversity":0.4375,"womens_rights":0.4583,"disaster_risk":0.5}},{"state":"California","abbr":"CA","dim":{"safety":0.5,"cost_of_living":0.4,"population_diversity":1.0,"womens_rights":0.8333,"disaster_risk":0.45}},{"state":"Colorado","abbr":"CO","dim":{"safety":0.4,"cost_of_living":0.55,"population_diversity":0.625,"womens_rights":0.875,"disaster_risk":0.6}},{"state":"Connecticut","abbr":"CT","dim":{"safety":0.9,"cost_of_living":0.5,"population_diversity":0.8125,"womens_rights":0.7917,"disaster_risk":0.65}},{"state":"Delaware","abbr":"DE","dim":{"safety":0.7,"cost_of_living":0.55,"population_diversity":0.875,"womens_rights":0.8,"disaster_risk":0.9}},{"state":"Florida","abbr":"FL","dim":{"safety":0.75,"cost_of_living":0.55,"population_diversity":1.0,"womens_rights":0.7083,"disaster_risk":0.35}},{"state":"Georgia","abbr":"GA","dim":{"safety":0.55,"cost_of_living":0.7,"population_diversity":0.8125,"womens_rights":0.4583,"disaster_risk":0.5}},{"state":"Hawaii","abbr":"HI","dim":{"safety":0.85,"cost_of_living":0.4,"population_diversity":1.0,"womens_rights":0.7,"disaster_risk":0.35}},{"state":"Idaho","abbr":"ID","dim":{"safety":0.6,"cost_of_living":0.55,"population_diversity":0.4375,"womens_rights":0.3333,"disaster_risk":0.7}},{"state":"Illinois","abbr":"IL","dim":{"safety":0.65,"cost_of_living":0.6,"population_diversity":0.9375,"womens_rights":0.6667,"disaster_risk":0.65}},{"state":"Indiana","abbr":"IN","dim":{"safety":0.7,"cost_of_living":0.75,"population_diversity":0.5,"womens_rights":0.2917,"disaster_risk":0.75}},{"state":"Iowa","abbr":"IA","dim":{"safety":0.85,"cost_of_living":0.8,"population_diversity":0.5,"womens_rights":0.5417,"disaster_risk":0.55}},{"state":"Kansas","abbr":"KS","dim":{"safety":0.5,"cost_of_living":0.8,"population_diversity":0.5625,"womens_rights":0.4167,"disaster_risk":0.5}},{"state":"Kentucky","abbr":"KY","dim":{"safety":0.6,"cost_of_living":0.8,"population_diversity":0.25,"womens_rights":0.4583,"disaster_risk":0.45}},{"state":"Louisiana","abbr":"LA","dim":{"safety":0.4,"cost_of_living":0.8,"population_diversity":0.5625,"womens_rights":0.2917,"disaster_risk":0.3}},{"state":"Maine","abbr":"ME","dim":{"safety":0.9,"cost_of_living":0.45,"population_diversity":0.3125,"womens_rights":0.8,"disaster_risk":0.65}},{"state":"Maryland","abbr":"MD","dim":{"safety":0.55,"cost_of_living":0.5,"population_diversity":0.9375,"womens_rights":0.875,"disaster_risk":0.75}},{"state":"Massachusetts","abbr":"MA","dim":{"safety":0.8,"cost_of_living":0.45,"population_diversity":0.8125,"womens_rights":0.7917,"disaster_risk":0.8}},{"state":"Michigan","abbr":"MI","dim":{"safety":0.5,"cost_of_living":0.8,"population_diversity":0.625,"womens_rights":0.6667,"disaster_risk":0.7}},{"state":"Minnesota","abbr":"MN","dim":{"safety":0.8,"cost_of_living":0.6,"population_diversity":0.75,"womens_rights":0.875,"disaster_risk":0.65}},{"state":"Mississippi","abbr":"MS","dim":{"safety":0.7,"cost_of_living":0.8,"population_diversity":0.375,"womens_rights":0.2917,"disaster_risk":0.45}},{"state":"Missouri","abbr":"MO","dim":{"safety":0.4,"cost_of_living":0.8,"population_diversity":0.375,"womens_rights":0.4583,"disaster_risk":0.55}},{"state":"Montana","abbr":"MT","dim":{"safety":0.55,"cost_of_living":0.6,"population_diversity":0.25,"womens_rights":0.45,"disaster_risk":0.4}},{"state":"Nebraska","abbr":"NE","dim":{"safety":0.85,"cost_of_living":0.65,"population_diversity":0.625,"womens_rights":0.5,"disaster_risk":0.5}},{"state":"Nevada","abbr":"NV","dim":{"safety":0.4,"cost_of_living":0.5,"population_diversity":0.9375,"womens_rights":0.6667,"disaster_risk":0.75}},{"state":"New Hampshire","abbr":"NH","dim":{"safety":1.0,"cost_of_living":0.6,"population_diversity":0.3125,"womens_rights":0.65,"disaster_risk":0.65}},{"state":"New Jersey","abbr":"NJ","dim":{"safety":0.8,"cost_of_living":0.4,"population_diversity":0.9375,"womens_rights":0.7917,"disaster_risk":0.75}},{"state":"New Mexico","abbr":"NM","dim":{"safety":0.45,"cost_of_living":0.6,"population_diversity":0.8125,"womens_rights":0.7083,"disaster_risk":0.7}},{"state":"New York","abbr":"NY","dim":{"safety":0.65,"cost_of_living":0.35,"population_diversity":1.0,"womens_rights":0.7917,"disaster_risk":0.6}},{"state":"North Carolina","abbr":"NC","dim":{"safety":0.55,"cost_of_living":0.6,"population_diversity":0.75,"womens_rights":0.5,"disaster_risk":0.4}},{"state":"North Dakota","abbr":"ND","dim":{"safety":0.7,"cost_of_living":0.9,"population_diversity":0.375,"womens_rights":0.3,"disaster_risk":0.55}},{"state":"Ohio","abbr":"OH","dim":{"safety":0.6,"cost_of_living":0.7,"population_diversity":0.5625,"womens_rights":0.5,"disaster_risk":0.8}},{"state":"Oklahoma","abbr":"OK","dim":{"safety":0.4,"cost_of_living":0.85,"population_diversity":0.5,"womens_rights":0.3333,"disaster_risk":0.5}},{"state":"Oregon","abbr":"OR","dim":{"safety":0.4,"cost_of_living":0.45,"population_diversity":0.5625,"womens_rights":0.9583,"disaster_risk":0.55}},{"state":"Pennsylvania","abbr":"PA","dim":{"safety":0.75,"cost_of_living":0.6,"population_diversity":0.6875,"womens_rights":0.5417,"disaster_risk":0.7}},{"state":"Rhode Island","abbr":"RI","dim":{"safety":1.0,"cost_of_living":0.5,"population_diversity":0.75,"womens_rights":0.85,"disaster_risk":0.75}},{"state":"South Carolina","abbr":"SC","dim":{"safety":0.45,"cost_of_living":0.75,"population_diversity":0.5625,"womens_rights":0.4583,"disaster_risk":0.6}},{"state":"South Dakota","abbr":"SD","dim":{"safety":0.6,"cost_of_living":0.8,"population_diversity":0.3125,"womens_rights":0.5,"disaster_risk":0.55}},{"state":"Tennessee","abbr":"TN","dim":{"safety":0.45,"cost_of_living":0.75,"population_diversity":0.4375,"womens_rights":0.375,"disaster_risk":0.55}},{"state":"Texas","abbr":"TX","dim":{"safety":0.55,"cost_of_living":0.8,"population_diversity":1.0,"womens_rights":0.4167,"disaster_risk":0.5}},{"state":"Utah","abbr":"UT","dim":{"safety":0.85,"cost_of_living":0.5,"population_diversity":0.5625,"womens_rights":0.5417,"disaster_risk":0.7}},{"state":"Vermont","abbr":"VT","dim":{"safety":0.7,"cost_of_living":0.45,"population_diversity":0.25,"womens_rights":0.9,"disaster_risk":0.65}},{"state":"Virginia","abbr":"VA","dim":{"safety":0.7,"cost_of_living":0.5,"population_diversity":0.8125,"womens_rights":0.625,"disaster_risk":0.75}},{"state":"Washington","abbr":"WA","dim":{"safety":0.6,"cost_of_living":0.45,"population_diversity":0.75,"womens_rights":0.75,"disaster_risk":0.65}},{"state":"West Virginia","abbr":"WV","dim":{"safety":0.65,"cost_of_living":0.8,"population_diversity":0.25,"womens_rights":0.375,"disaster_risk":0.7}},{"state":"Wisconsin","abbr":"WI","dim":{"safety":0.8,"cost_of_living":0.6,"population_diversity":0.5,"womens_rights":0.625,"disaster_risk":0.8}},{"state":"Wyoming","abbr":"WY","dim":{"safety":0.6,"cost_of_living":0.8,"population_diversity":0.375,"womens_rights":0.3,"disaster_risk":0.65}}]};
+
+// ── Dimension metadata (sub-metrics + sources) ────────────────────────────────
+const DIM_META = {
+  safety: { metrics: [
+    { name: 'Violent crime rate (per 100K)',        source: 'FBI CIUS Table 4, 2023–2024',           url: 'https://crime.fbi.gov/table/4' },
+    { name: 'Property crime rate (per 100K)',       source: 'FBI CIUS Table 4, 2023–2024',           url: 'https://crime.fbi.gov/table/4' },
+    { name: 'Gun death rate (per 100K)',            source: 'CDC WONDER / VSRR Provisional 2024',    url: 'https://data.cdc.gov/resource/489q-934x.json' },
+    { name: 'Incarceration rate (per 100K)',        source: 'The Sentencing Project',                url: 'https://www.sentencingproject.org/research/' },
+    { name: 'Hate crime incidents (per 100K)',      source: 'FBI Hate Crime Statistics Table 11, 2024', url: 'https://crime.fbi.gov/hate-crime' },
+  ]},
+  cost_of_living: { metrics: [
+    { name: 'Cost of Living Index',                source: 'MERIC / C2ER, 2025 Q1',                 url: 'https://meric.mo.gov/data/cost-living-data-series' },
+    { name: 'Median home price',                   source: 'Census ACS 1-Year 2024',                url: 'https://data.census.gov/table/ACSDT1Y2024.B25077' },
+    { name: 'Median gross rent',                   source: 'Census ACS 1-Year 2024',                url: 'https://data.census.gov/table/ACSDT1Y2024.B25064' },
+    { name: 'State & local tax burden (%)',        source: 'Tax Foundation Facts & Figures 2022',   url: 'https://taxfoundation.org/data/all/state/tax-burden-by-state/' },
+    { name: 'Median household income',             source: 'Census ACS 1-Year 2024',                url: 'https://data.census.gov/table/ACSDT1Y2024.B19013' },
+  ]},
+  population_diversity: { metrics: [
+    { name: 'Racial/ethnic diversity index',       source: 'Census ACS 1-Year 2024',                url: 'https://data.census.gov/table/ACSDT1Y2024.B02001' },
+    { name: 'Foreign-born population (%)',         source: 'Census ACS 1-Year 2024',                url: 'https://data.census.gov/table/ACSDT1Y2024.B05002' },
+    { name: 'Linguistic diversity (%)',            source: 'Census ACS 1-Year 2024',                url: 'https://data.census.gov/table/ACSDT1Y2024.C16001' },
+    { name: 'Religious diversity index',           source: 'Pew Research Religious Landscape Study', url: 'https://www.pewresearch.org/religion/religious-landscape-study/' },
+  ]},
+  womens_rights: { metrics: [
+    { name: 'Abortion access score (1–5)',         source: 'Guttmacher Institute / KFF',            url: 'https://www.guttmacher.org/state-policy' },
+    { name: 'Gender pay gap (cents per $1)',       source: 'Census ACS 1-Year 2024',                url: 'https://data.census.gov/table/ACSDT1Y2024.B20017' },
+    { name: 'Maternal mortality rate',             source: 'CDC NCHS, 2018–2022',                   url: 'https://www.cdc.gov/nchs/maternal-mortality/data.htm' },
+    { name: 'Women in state legislature (%)',      source: 'CAWP, Rutgers University',              url: 'https://cawp.rutgers.edu/facts/state-state-information' },
+    { name: 'Paid family leave program (0–4)',     source: 'National Partnership / A Better Balance', url: 'https://www.abetterbalance.org/resources/paid-family-leave-laws-chart/' },
+    { name: 'ERA & anti-discrimination score (0–4)', source: 'ERA Education Project / MAP',         url: 'https://www.lgbtmap.org/equality-maps/non_discrimination_laws' },
+  ]},
+  disaster_risk: { metrics: [
+    { name: 'FEMA disaster declarations per capita', source: 'FEMA OpenFEMA, 2015–2024',            url: 'https://www.fema.gov/api/open/v2/DisasterDeclarationsSummaries' },
+    { name: 'Avg. annual property damage per capita', source: 'Climate Central Billion-Dollar Disasters', url: 'https://www.climatecentral.org/climate-services/billion-dollar-disasters/summary-stats' },
+    { name: 'Hazardous weather fatality rate',     source: 'NOAA / NWS, 2022–2024',                url: 'https://www.weather.gov/hazstat/' },
+    { name: 'Distinct hazard types declared',      source: 'FEMA OpenFEMA, 2015–2024',              url: 'https://www.fema.gov/api/open/v2/DisasterDeclarationsSummaries' },
+    { name: 'FEMA National Risk Index score',      source: 'FEMA NRI v1.20, Dec 2025',              url: 'https://hazards.fema.gov/nri/' },
+  ]},
+};
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+const TIER_COLORS = { 1: '#005F73', 2: '#4C9EB5', 3: '#A8D1DC', 4: '#E2EEF1' };
+const TIER_TEXT   = { 1: '#fff',    2: '#fff',    3: '#1C1C1E', 4: '#1C1C1E' };
+
+// ── State ──────────────────────────────────────────────────────────────────────
+const defaultWeights = {};
+WEB_DATA.dimensions.forEach(d => { defaultWeights[d.id] = d.default_weight; });
+
+let weights        = { ...defaultWeights };
+let currentResults = [];
+let stateMap       = {};
+let pathSelection  = null;
+
+// ── Scoring ────────────────────────────────────────────────────────────────────
+function percentile(sorted, p) {
+  const n = sorted.length;
+  const k = (p / 100) * (n - 1);
+  const f = Math.floor(k);
+  const c = f + 1;
+  if (c >= n) return sorted[n - 1];
+  return sorted[f] + (k - f) * (sorted[c] - sorted[f]);
+}
+
+function computeScores() {
+  const results = WEB_DATA.states.map(s => {
+    let score = 0;
+    WEB_DATA.dimensions.forEach(d => {
+      const v = s.dim[d.id];
+      if (v !== null && v !== undefined) score += v * weights[d.id];
+    });
+    return { state: s.state, abbr: s.abbr, score: Math.round(score * 100) / 100, dim: s.dim };
+  });
+
+  results.sort((a, b) => b.score - a.score);
+  results.forEach((r, i) => r.rank = i + 1);
+
+  const sorted = results.map(r => r.score).sort((a, b) => a - b);
+  const p25 = percentile(sorted, 25);
+  const p50 = percentile(sorted, 50);
+  const p75 = percentile(sorted, 75);
+
+  results.forEach(r => {
+    if      (r.score >= p75) r.tier = 1;
+    else if (r.score >= p50) r.tier = 2;
+    else if (r.score >= p25) r.tier = 3;
+    else                     r.tier = 4;
+  });
+
+  currentResults = results;
+  stateMap = {};
+  results.forEach(r => { stateMap[r.state] = r; });
+}
+
+// ── Sliders ────────────────────────────────────────────────────────────────────
+function buildSliders() {
+  const grid = document.getElementById('sliders-grid');
+  WEB_DATA.dimensions.forEach(dim => {
+    const meta = DIM_META[dim.id];
+    const metricItems = meta.metrics.map(m =>
+      `<li>${m.name}<a href="${m.url}" target="_blank" rel="noopener">${m.source}</a></li>`
+    ).join('');
+
+    const item = document.createElement('div');
+    item.className = 'slider-item';
+    item.innerHTML = `
+      <div class="dim-popover" id="popover-${dim.id}">
+        <div class="dim-popover-title">Includes</div>
+        <ul>${metricItems}</ul>
+      </div>
+      <div class="slider-header">
+        <span class="slider-name">${dim.label}</span>
+        <span style="display:flex;align-items:center;gap:5px">
+          <button class="info-btn" data-dim="${dim.id}" aria-label="What is ${dim.label}?">i</button>
+          <span class="slider-value" id="val-${dim.id}">${dim.default_weight}%</span>
+        </span>
+      </div>
+      <input type="range" min="0" max="100" value="${dim.default_weight}"
+             id="slider-${dim.id}" data-dim="${dim.id}">
+    `;
+    grid.appendChild(item);
+  });
+
+  document.querySelectorAll('input[type="range"]').forEach(input => {
+    input.addEventListener('input', onSliderChange);
+  });
+
+  document.querySelectorAll('.info-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const dimId   = btn.dataset.dim;
+      const popover = document.getElementById('popover-' + dimId);
+      const isOpen  = popover.classList.contains('open');
+      closeAllPopovers();
+      if (!isOpen) {
+        popover.classList.add('open');
+        btn.classList.add('active');
+      }
+    });
+  });
+
+  document.getElementById('reset-btn').addEventListener('click', resetWeights);
+}
+
+function closeAllPopovers() {
+  document.querySelectorAll('.dim-popover').forEach(p => p.classList.remove('open'));
+  document.querySelectorAll('.info-btn').forEach(b => b.classList.remove('active'));
+}
+
+// ── Methodology section ────────────────────────────────────────────────────────
+function buildMethodology() {
+  const grid = document.getElementById('methodology-grid');
+  WEB_DATA.dimensions.forEach(dim => {
+    const meta = DIM_META[dim.id];
+    const items = meta.metrics.map(m =>
+      `<li><a href="${m.url}" target="_blank" rel="noopener">${m.name}</a><span style="display:block;font-size:11px;color:var(--muted);margin-top:1px">${m.source}</span></li>`
+    ).join('');
+    const block = document.createElement('div');
+    block.className = 'meth-dim';
+    block.innerHTML = `<div class="meth-dim-title">${dim.label}</div><ul class="meth-metric-list">${items}</ul>`;
+    grid.appendChild(block);
+  });
+}
+
+function onSliderChange(e) {
+  const dimId = e.target.dataset.dim;
+  weights[dimId] = parseInt(e.target.value, 10);
+  document.getElementById(`val-${dimId}`).textContent = weights[dimId] + '%';
+  updateWeightStatus();
+}
+
+function resetWeights() {
+  WEB_DATA.dimensions.forEach(dim => {
+    weights[dim.id] = dim.default_weight;
+    document.getElementById(`slider-${dim.id}`).value = dim.default_weight;
+    document.getElementById(`val-${dim.id}`).textContent = dim.default_weight + '%';
+  });
+  updateWeightStatus();
+}
+
+function updateWeightStatus() {
+  const total   = Object.values(weights).reduce((a, b) => a + b, 0);
+  const totalEl = document.getElementById('weight-total');
+  const hintEl  = document.getElementById('weight-hint');
+
+  totalEl.textContent = `Total: ${total}%`;
+
+  if (total === 100) {
+    totalEl.className = 'weight-total valid';
+    hintEl.textContent = '';
+    computeScores();
+    updateMap();
+    updateTopTen();
+  } else {
+    totalEl.className = 'weight-total invalid';
+    const diff = 100 - total;
+    hintEl.textContent = diff > 0 ? `${diff}% remaining` : `${Math.abs(diff)}% over limit`;
+  }
+}
+
+// ── Map ────────────────────────────────────────────────────────────────────────
+async function buildMap() {
+  const us     = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json');
+  const states = topojson.feature(us, us.objects.states);
+
+  const W = 960, H = 600;
+  const projection    = d3.geoAlbersUsa().scale(1280).translate([W / 2, H / 2]);
+  const pathGenerator = d3.geoPath().projection(projection);
+
+  const svg = d3.select('#map')
+    .append('svg')
+    .attr('viewBox', `0 0 ${W} ${H}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet');
+
+  const tooltip = document.getElementById('tooltip');
+
+  pathSelection = svg.selectAll('.state-path')
+    .data(states.features)
+    .enter()
+    .append('path')
+    .attr('class', 'state-path')
+    .attr('d', pathGenerator)
+    .attr('fill', d => fillColor(d.properties.name))
+    .on('mousemove', function(event, d) {
+      const result = stateMap[d.properties.name];
+      if (!result) return;
+      renderTooltip(result);
+      positionTooltip(event);
+      tooltip.classList.add('visible');
+    })
+    .on('mouseleave', function() {
+      tooltip.classList.remove('visible');
+    });
+}
+
+function fillColor(stateName) {
+  const r = stateMap[stateName];
+  return r ? TIER_COLORS[r.tier] : '#ccc';
+}
+
+function updateMap() {
+  if (!pathSelection) return;
+  pathSelection.attr('fill', d => fillColor(d.properties.name));
+}
+
+// ── Tooltip ────────────────────────────────────────────────────────────────────
+function renderTooltip(result) {
+  const tooltip = document.getElementById('tooltip');
+
+  const dimRows = WEB_DATA.dimensions.map(dim => {
+    const v   = result.dim[dim.id];
+    const pct = v !== null ? Math.round(v * 100) : 0;
+    return `
+      <div class="tt-dim-row">
+        <span class="tt-dim-name">${dim.label}</span>
+        <div class="tt-bar-bg"><div class="tt-bar-fill" style="width:${pct}%"></div></div>
+        <span class="tt-dim-val">${pct}%</span>
+      </div>`;
+  }).join('');
+
+  tooltip.innerHTML = `
+    <div class="tt-state">
+      ${result.state}
+      <span class="tt-tier-badge"
+            style="background:${TIER_COLORS[result.tier]};color:${TIER_TEXT[result.tier]}">
+        Tier ${result.tier}
+      </span>
+    </div>
+    <div class="tt-rank">Ranked #${result.rank} of 50 &middot; Score: ${result.score.toFixed(1)}</div>
+    <div class="tt-dims">${dimRows}</div>
+  `;
+}
+
+function positionTooltip(event) {
+  const tooltip = document.getElementById('tooltip');
+  const W       = 230;
+  const margin  = 14;
+  const x       = event.clientX + margin;
+  const y       = event.clientY - 10;
+  tooltip.style.left = (x + W > window.innerWidth ? event.clientX - W - margin : x) + 'px';
+  tooltip.style.top  = Math.max(8, y) + 'px';
+}
+
+// ── Top Ten ────────────────────────────────────────────────────────────────────
+function updateTopTen() {
+  const grid  = document.getElementById('top-ten-grid');
+  const top10 = currentResults.slice(0, 10);
+
+  grid.innerHTML = top10.map((r, i) => `
+    <div class="top-ten-item">
+      <span class="top-ten-rank">${String(i + 1).padStart(2, '0')}</span>
+      <div  class="top-ten-dot" style="background:${TIER_COLORS[r.tier]}"></div>
+      <span class="top-ten-name">${r.state}</span>
+      <span class="top-ten-score">${r.score.toFixed(1)}</span>
+    </div>
+  `).join('');
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+document.addEventListener('click', closeAllPopovers);
+
+computeScores();
+buildSliders();
+buildMethodology();
+updateWeightStatus();
+buildMap().then(() => { updateMap(); updateTopTen(); });
+</script>
+</body>
+</html>
